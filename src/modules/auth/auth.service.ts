@@ -25,7 +25,7 @@ export class AuthService {
     const data = await this.userService.findOne(undefined, input.email);
 
     if (!data || !(await bcrypt.compare(input.password, data.password))) {
-      throw new UnauthorizedException('Invalid email or password');
+      throw new UnauthorizedException('Invalid credentials');
     }
 
     const payload = { id: data.id };

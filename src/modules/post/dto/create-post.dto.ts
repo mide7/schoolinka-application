@@ -23,7 +23,6 @@ export class CreatePostDto implements Pick<Post, 'title' | 'content'> {
   @IsOptional()
   @ApiProperty({
     description: 'Blog post publish status',
-    minLength: 3,
   })
   published?: boolean;
 }

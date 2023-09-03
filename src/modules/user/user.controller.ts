@@ -8,6 +8,8 @@ import {
   ParseIntPipe,
   UseGuards,
   Request,
+  Query,
+  Logger,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -19,6 +21,7 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { AuthGuard } from '@/guards/auth';
+import { FindUsersDto } from './dto/find-users.dto';
 
 @Controller('user')
 @ApiTags('users')
@@ -28,8 +31,34 @@ export class UserController {
   @Get()
   @ApiOperation({ summary: 'Get all users' })
   @ApiResponse({ status: 200, description: 'Users retrieved successfully' })
-  async findAll() {
-    return await this.userService.findAll();
+  @ApiResponse({
+    status: 200,
+    description: 'Posts Fetched successfully',
+    schema: {
+      properties: {
+        data: {
+          type: 'array', // Specify that the response is an array
+          items: {
+            type: 'object', // Define the type of objects in the array
+            properties: {
+              id: { type: 'number' },
+              username: { type: 'string' },
+              email: { type: 'string' },
+              created_at: { type: 'string', format: 'date-time' },
+              updated_at: { type: 'string', format: 'date-time' },
+            },
+          },
+        },
+        page: { type: 'number' },
+        size: { type: 'number' },
+        total: { type: 'number' },
+        sort: { type: 'string' },
+        order: { type: 'string' },
+      },
+    },
+  })
+  async findAll(@Query() query: FindUsersDto) {
+    return await this.userService.findAll(query);
   }
 
   @Get(':id')
@@ -42,6 +71,8 @@ export class UserController {
         id: { type: 'number' },
         username: { type: 'string' },
         email: { type: 'string' },
+        created_at: { type: 'string', format: 'date-time' },
+        updated_at: { type: 'string', format: 'date-time' },
         posts: {
           type: 'array',
           items: { type: 'schema' },
@@ -51,10 +82,13 @@ export class UserController {
     },
   })
   async findOne(@Param('id', ParseIntPipe) id: number) {
-    return omit(await this.userService.findOne(+id), ['password']);
+    return omit(await this.userService.findOne(+id, undefined, ['post']), [
+      'password',
+    ]);
   }
 
   @UseGuards(AuthGuard)
+  @Patch()
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update a user' })
   @ApiResponse({
@@ -70,13 +104,14 @@ export class UserController {
       },
     },
   })
-  @Patch()
   async update(@Request() req: any, @Body() updateUserDto: UpdateUserDto) {
+    Logger.debug(req.user, 'update route');
     return omit(await this.userService.update(req?.user?.id, updateUserDto), [
       'password',
     ]);
   }
 
+  @UseGuards(AuthGuard)
   @Delete()
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete a account and posts' })

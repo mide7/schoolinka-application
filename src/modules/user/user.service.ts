@@ -1,8 +1,9 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from '@/prisma/prisma.service';
-import { generateHashedPassword } from '@/lib';
+import { generateHashedPassword, queryHelper } from '@/lib';
+import { FindUsersDto } from './dto/find-users.dto';
 
 @Injectable()
 export class UserService {
@@ -16,14 +17,50 @@ export class UserService {
     });
   }
 
-  async findAll() {
-    return await this.prisma.user.findMany({
-      select: {
-        id: true,
-        username: true,
-        email: true,
-      },
-    });
+  async findAll(input: FindUsersDto) {
+    const { skip, order, page, search, size, sort } = queryHelper(input);
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.user.findMany({
+        select: {
+          id: true,
+          email: true,
+          username: true,
+          created_at: true,
+          updated_at: true,
+        },
+        where: {
+          OR: search
+            ? [
+                {
+                  username: {
+                    contains: search,
+                    mode: 'insensitive',
+                  },
+                },
+              ]
+            : undefined,
+        },
+        orderBy: { [sort]: order },
+        skip,
+        take: size,
+      }),
+      this.prisma.user.count({
+        where: {
+          OR: search
+            ? [
+                {
+                  username: {
+                    contains: search,
+                    mode: 'insensitive',
+                  },
+                },
+              ]
+            : undefined,
+        },
+      }),
+    ]);
+
+    return { data, page, size, total, sort, order };
   }
 
   async findOne(
@@ -49,6 +86,7 @@ export class UserService {
   }
 
   async update(id: number, updateUserDto: UpdateUserDto) {
+    Logger.log({ updateUserDto });
     let secure_password: string | undefined;
     if (updateUserDto.password)
       secure_password = await generateHashedPassword(updateUserDto.password);
