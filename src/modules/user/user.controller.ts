@@ -9,7 +9,6 @@ import {
   UseGuards,
   Request,
   Query,
-  Logger,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -105,7 +104,6 @@ export class UserController {
     },
   })
   async update(@Request() req: any, @Body() updateUserDto: UpdateUserDto) {
-    Logger.debug(req.user, 'update route');
     return omit(await this.userService.update(req?.user?.id, updateUserDto), [
       'password',
     ]);

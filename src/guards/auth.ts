@@ -1,3 +1,4 @@
+import { PrismaService } from '@/prisma/prisma.service';
 import {
   CanActivate,
   ExecutionContext,
@@ -6,10 +7,14 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
+import { omit } from 'lodash';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
-  constructor(private jwtService: JwtService) {}
+  constructor(
+    private jwtService: JwtService,
+    private prisma: PrismaService,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
@@ -22,7 +27,17 @@ export class AuthGuard implements CanActivate {
         secret: process.env.JWT_SECRET,
       });
 
-      request['user'] = payload;
+      const db_user = await this.prisma.user.findUnique({
+        where: {
+          id: payload.id,
+        },
+      });
+
+      if (!db_user) {
+        throw new UnauthorizedException();
+      }
+
+      request['user'] = omit(db_user, ['password']);
     } catch {
       throw new UnauthorizedException();
     }

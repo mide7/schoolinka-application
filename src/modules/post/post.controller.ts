@@ -8,7 +8,6 @@ import {
   Delete,
   Query,
   ParseIntPipe,
-  Logger,
   Request,
   UseGuards,
 } from '@nestjs/common';
@@ -277,7 +276,6 @@ export class PostController {
     },
   })
   async remove(@Request() req, @Param('id', ParseIntPipe) id: number) {
-    Logger.log(req.user, 'PostController');
     return {
       data: await this.postService.remove(id, req?.user?.id),
       message: 'Deleted successfully',

@@ -13,27 +13,15 @@ import { queryHelper } from '@/lib';
 export class PostService {
   constructor(private readonly prisma: PrismaService) {}
   async create(createPostDto: CreatePostDto, authorId: number) {
-    return await this.prisma.$transaction(async (tx) => {
-      const author = await this.prisma.user.findUnique({
-        where: {
-          id: authorId,
-        },
-      });
-
-      if (!author) {
-        throw new BadRequestException('Author not found');
-      }
-
-      return await tx.post.create({
-        data: {
-          ...createPostDto,
-          author: {
-            connect: {
-              id: authorId,
-            },
+    return await this.prisma.post.create({
+      data: {
+        ...createPostDto,
+        author: {
+          connect: {
+            id: authorId,
           },
         },
-      });
+      },
     });
   }
 
